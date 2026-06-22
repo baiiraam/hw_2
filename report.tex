@@ -1,0 +1,441 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{bbm}
+
+% Page formatting
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.8em}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+% Caption formatting
+\captionsetup[figure]{font=small, labelfont=bf}
+\captionsetup[table]{font=small, labelfont=bf}
+
+\title{
+    \vspace{-1.5cm}
+    \textbf{Homework 2: Linear Models, Regularization, and Classification} \\
+    \large AI-ENG-201 – Machine Learning – Fall 2026
+}
+\author{Bayram Bayramov}
+\date{2026-06-23}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\vspace{0.5cm}
+
+\begin{center}
+    \rule{0.9\textwidth}{0.4pt}
+\end{center}
+
+\vspace{0.3cm}
+
+\begin{center}
+    \textit{I affirm that the work in this submission is my own. I have not shared or received code, plots, or written analysis for this assignment. Where I used AI assistants, I did so only as permitted by the AI/LLM policy. I can explain every line of code and every paragraph of writing in my submission.}
+\end{center}
+
+\vspace{0.3cm}
+
+\begin{center}
+    \rule{0.9\textwidth}{0.4pt}
+\end{center}
+
+\newpage
+
+\tableofcontents
+\newpage
+
+\section{Part 1: Linear Regression}
+
+\subsection{OLS Closed-Form}
+The \texttt{LinearRegression} class uses normal equations:
+$w = (X^T X)^{-1} X^T y$, with \texttt{np.linalg.solve} for stability and intercept via column of ones.
+
+\subsection{Gradient Descent}
+The \texttt{LinearRegressionGD} class minimizes MSE:
+$\nabla_w J(w) = -\frac{2}{N} X^T (y - Xw)$.
+Stopping: $\|w_{\text{new}} - w_{\text{old}}\|_2 < \text{tol}$ or \texttt{max\_iter}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{gd_convergence.pdf}
+    \caption{Training MSE vs iteration for different learning rates}
+    \label{fig:gd}
+\end{figure}
+
+\begin{table}[H]
+    \centering
+    \caption{GD convergence}
+    \begin{tabular}{c c c}
+        \toprule
+        $\eta$ & Iterations & Status \\
+        \midrule
+        0.001 & 1000 & Max reached \\
+        0.01  & 579  & Converged \\
+        0.1   & 67   & Converged \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:gd}
+\end{table}
+
+Final weights match OLS within $5.47\times10^{-5}<10^{-4}$.
+
+\subsection{Polynomial Fitting}
+California Housing, \texttt{MedInc} as single predictor. For $d=1,\ldots,12$, features $[x,x^2,\ldots,x^d]$ standardized.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{polynomial_overfitting.pdf}
+    \caption{Training/validation MSE vs polynomial degree}
+    \label{fig:poly}
+\end{figure}
+
+\begin{table}[H]
+    \centering
+    \caption{Polynomial results}
+    \begin{tabular}{c c}
+        \toprule
+        Metric & Value \\
+        \midrule
+        Best degree & 8 \\
+        Lowest validation MSE & 0.745660 \\
+        Overfitting begins & Degree 3 \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:poly}
+\end{table}
+
+\textbf{Interpretation:} Validation error decreases to degree 8, then increases (overfitting). Demonstrates bias-variance tradeoff.
+
+\subsection{MLE Derivation}
+Given $y_i = w^T x_i + \epsilon_i,\ \epsilon_i \sim \mathcal{N}(0,\sigma^2)$:
+
+\begin{equation}
+L(w) = \prod_{i=1}^N \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\frac{(y_i - w^T x_i)^2}{2\sigma^2}\right)
+\end{equation}
+
+\begin{equation}
+\log L(w) = -\frac{N}{2}\log(2\pi\sigma^2) - \frac{1}{2\sigma^2}\sum_{i=1}^N (y_i - w^T x_i)^2
+\end{equation}
+
+Maximizing $\log L(w)$ is equivalent to minimizing $\sum (y_i - w^T x_i)^2$, i.e., OLS. Thus OLS is the MLE under Gaussian noise.
+
+\subsection{Prediction Intervals}
+95\% prediction interval for test point $x_*$:
+\begin{equation}
+\hat{y}_* \pm t_{n-p,0.975} \cdot \hat{\sigma} \sqrt{1 + x_*^T (X^T X)^{-1} x_*},\quad \hat{\sigma}^2 = \frac{1}{n-p}\sum (y_i - \hat{y}_i)^2
+\end{equation}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{prediction_intervals.pdf}
+    \caption{Prediction intervals: degree 5 vs 12}
+    \label{fig:pi}
+\end{figure}
+
+\begin{table}[H]
+    \centering
+    \caption{Interval widths}
+    \begin{tabular}{c c}
+        \toprule
+        Degree & Avg width \\
+        \midrule
+        5  & 3.2176 \\
+        12 & 3.8868 \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:pi}
+\end{table}
+
+\textbf{Interpretation:} Degree 12 produces wider intervals (3.8868 vs 3.2176), reflecting greater uncertainty from increased variance.
+
+\section{Part 2: Regularization \& Tuning}
+
+\subsection{Ridge}
+The \texttt{RidgeRegression} class uses:
+$w = (X^T X + \lambda I)^{-1} X^T y$. Intercept not regularized.
+
+\subsection{Lasso}
+The \texttt{LassoRegression} class minimizes $\frac{1}{2N}\sum (y_i - w^T x_i)^2 + \lambda\|w\|_1$ via cyclic coordinate descent:
+
+\begin{equation}
+w_j = \frac{\text{soft\_threshold}(\rho_j, N\lambda)}{X_j^T X_j},\quad
+\text{soft\_threshold}(z,\lambda) =
+\begin{cases}
+z - \lambda, & z > \lambda \\
+z + \lambda, & z < -\lambda \\
+0, & |z| \leq \lambda
+\end{cases},\quad \rho_j = \sum_i x_{ij}(y_i - y_i^{(-j)})
+\end{equation}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{regularization_paths.pdf}
+    \caption{Lasso vs Ridge paths on Diabetes}
+    \label{fig:diabetes}
+\end{figure}
+
+\begin{table}[H]
+    \centering
+    \caption{Non-zero coefficients at $\lambda=100$}
+    \begin{tabular}{c c}
+        \toprule
+        Method & Non-zero \\
+        \midrule
+        Lasso & 0 \\
+        Ridge & 10 \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:nonzero}
+\end{table}
+
+\textbf{Interpretation:} Lasso drives coefficients to zero (sparsity); Ridge shrinks smoothly. At high $\lambda$, Lasso zeros all, Ridge retains all.
+
+\subsection{Hyperparameter Search}
+Compared grid vs random search for Ridge $\lambda$ on California Housing:
+\begin{itemize}
+    \item \textbf{Grid:} 20 values log-spaced in $[10^{-4},10^4]$
+    \item \textbf{Random:} 20 values uniform in log space
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{hyperparameter_search.pdf}
+    \caption{Grid vs random search}
+    \label{fig:hyper}
+\end{figure}
+
+\begin{table}[H]
+    \centering
+    \caption{Search results}
+    \begin{tabular}{c c c c}
+        \toprule
+        Strategy & Best $\lambda$ & Best RMSE & Time (s) \\
+        \midrule
+        Grid & 29.7635 & 0.7282 & 0.302 \\
+        Random & 45.5162 & 0.7281 & 0.306 \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:hyper}
+\end{table}
+
+\textbf{Interpretation:} Similar results; random slightly more efficient with marginally better RMSE.
+
+
+\subsection{Learning Curves}
+OLS vs Ridge with optimal $\lambda$:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{learning_curves.pdf}
+    \caption{Learning curves: OLS vs Ridge}
+    \label{fig:lc}
+\end{figure}
+
+\begin{table}[H]
+    \centering
+    \caption{Final RMSE}
+    \begin{tabular}{c c c}
+        \toprule
+        Model & Train RMSE & Val RMSE \\
+        \midrule
+        OLS & 0.7197 & 0.7456 \\
+        Ridge & 0.7197 & 0.7448 \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:lc}
+\end{table}
+
+\textbf{Interpretation:} More data reduces validation error. Ridge has slightly lower validation RMSE, demonstrating regularization reduces overfitting.
+
+\section{Part 3: Logistic Regression \& Naive Bayes}
+
+\subsection{Logistic Regression}
+The \texttt{LogisticRegression} class minimizes negative log-likelihood with L2 penalty:
+\begin{equation}
+J(w) = -\frac{1}{N}\sum [y_i\log\sigma(w^T x_i) + (1-y_i)\log(1-\sigma(w^T x_i))] + \frac{\lambda}{2N}\|w\|_2^2
+\end{equation}
+\begin{equation}
+\nabla_w J(w) = \frac{1}{N}X^T(\sigma(Xw)-y) + \frac{\lambda}{N}w
+\end{equation}
+
+\subsection{Multiclass}
+One-vs-rest for $K$ classes.
+
+\begin{table}[H]
+    \centering
+    \caption{LR results on Wine}
+    \begin{tabular}{c c}
+        \toprule
+        Metric & Value \\
+        \midrule
+        Accuracy & 0.9815 \\
+        Precision (macro) & 0.9833 \\
+        Recall (macro) & 0.9841 \\
+        F1 (macro) & 0.9833 \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:lr_wine}
+\end{table}
+
+Confusion matrix (one misclassification):
+$\text{CM} = \begin{bmatrix}19&0&0\\1&20&0\\0&0&14\end{bmatrix}$
+
+\subsection{Gaussian Naive Bayes}
+Class-conditional Gaussians:
+$P(x_j|y=c) = \frac{1}{\sqrt{2\pi\sigma_{jc}^2}}\exp(-\frac{(x_j-\mu_{jc})^2}{2\sigma_{jc}^2})$
+Log-space prediction:
+$\log P(y=c|x) \propto \log P(y=c) + \sum_j \log P(x_j|y=c)$
+
+\begin{table}[H]
+    \centering
+    \caption{NB results on Wine}
+    \begin{tabular}{c c}
+        \toprule
+        Metric & Value \\
+        \midrule
+        Accuracy & 1.0000 \\
+        Precision (macro) & 1.0000 \\
+        Recall (macro) & 1.0000 \\
+        F1 (macro) & 1.0000 \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:nb_wine}
+\end{table}
+
+Perfect classification: $\text{CM} = \begin{bmatrix}19&0&0\\0&21&0\\0&0&14\end{bmatrix}$
+
+\textbf{Discussion:} NB achieved perfect accuracy on Wine, outperforming LR (0.98). The independence assumption works well here. NB (generative) models $P(x,y)$; LR (discriminative) models $P(y|x)$. NB's conditional independence helps with limited data but can hurt with correlated features.
+
+\subsection{Text Classification}
+Pipeline: top 5,000 words (\texttt{BagOfWords}) + smoothed TF-IDF:
+$\text{tf-idf}_{t,d} = f_{t,d} \cdot (\log(\frac{1+N}{1+|\{d:f_{t,d}>0\}|}) + 1)$
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{roc_calibration.pdf}
+    \caption{ROC (left) and calibration (right): LR (AUC=0.9976, ECE=0.1801) vs NB (AUC=0.9760, ECE=0.0211)}
+    \label{fig:roc}
+\end{figure}
+
+ECE: $\text{ECE} = \frac{1}{B}\sum_{b=1}^B |\text{mean\_pred}_b - \text{frac\_pos}_b|$
+
+\begin{table}[H]
+    \centering
+    \caption{Text results}
+    \begin{tabular}{c c c}
+        \toprule
+        Model & AUC & ECE \\
+        \midrule
+        LR & 0.9976 & 0.1801 \\
+        NB & 0.9760 & 0.0211 \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:text}
+\end{table}
+
+\textbf{Interpretation:} Both have strong discriminative power. LR slightly outperforms NB in AUC but NB is much better calibrated (ECE 0.021 vs 0.180). LR is overconfident.
+
+\section{Part 4: Evaluation \& Interpretation}
+
+\subsection{Regularization Paths}
+California Housing paths:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{california_regularization_paths.pdf}
+    \caption{Lasso (left) vs Ridge (right) paths}
+    \label{fig:ca_paths}
+\end{figure}
+
+\texttt{AveRooms} and \texttt{AveBedrms} correlation: 0.8476.
+
+\begin{table}[H]
+    \centering
+    \caption{Coefficients at $\lambda=1000$}
+    \begin{tabular}{c c c}
+        \toprule
+        Method & AveRooms & AveBedrms \\
+        \midrule
+        Lasso & 0.0000 & 0.0000 \\
+        Ridge & -0.1502 & 0.1711 \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:corr}
+\end{table}
+
+\textbf{Interpretation:} At high $\lambda$, both shrink coefficients. Lasso zeros coefficients (sparsity); Ridge keeps non-zero. For correlated features, Lasso selects one, Ridge shrinks both.
+
+\subsection{ROC and Calibration}
+See Figure \ref{fig:roc}. ECE quantifies calibration:
+$\text{ECE} = \frac{1}{B}\sum_{b=1}^B |\text{mean\_pred}_b - \text{frac\_pos}_b|$
+
+LR: high AUC (0.9976) but poor calibration (ECE=0.1801) — overconfident. NB: slightly lower AUC (0.9760) but excellent calibration (ECE=0.0211) — well-calibrated despite independence violation.
+
+\subsection{Part 4.3: Discussion Questions}
+
+\subsubsection{(i) Geometric Interpretation of L1 vs L2 Regularization}
+
+In 2D, L1 ($\|w\|_1 \leq t$) forms a diamond with axis-aligned corners; L2 ($\|w\|_2^2 \leq t$) forms a circle. Optimal solutions occur where elliptical loss contours first touch the constraint region. L1's sharp corners produce sparse solutions (coefficients exactly zero), while L2 yields non-zero but shrunk coefficients. Our Diabetes experiments confirm this: Lasso drove coefficients to zero at intermediate $\lambda$, while Ridge retained all 10 features.
+
+\subsubsection{(ii) Naive Bayes and the Independence Assumption}
+
+Despite clear word independence violations, Naive Bayes achieved AUC 0.976 on text classification. This works because the decision boundary can remain correct even with inaccurate probability estimates; dependencies often cancel out or don't affect relative class scores. NB is robust to moderate feature correlations, especially with informative features. Compared to Logistic Regression (AUC 0.997), NB's strong performance shows the independence assumption doesn't catastrophically degrade results.
+
+\subsubsection{(iii) Overfitting in Polynomial Fitting}
+
+From California Housing (MedInc feature): \textbf{optimal degree} = 8 (validation MSE 0.745660). \textbf{Overfitting} begins at degree 9 (validation MSE increases). \textbf{Bias-variance:} degrees 1-3 underfit (high bias); 4-8 balance bias/variance; $\geq$9 overfit (high variance), fitting training noise.
+
+\section{Bonus: Weighted Linear Regression}
+Weighted least squares: $w = (X^T V X)^{-1} X^T V y,\ V=\text{diag}(v),\ v_i>0$.
+Supports arbitrary weights and heteroscedasticity via two-step estimation (OLS residuals $\to$ inverse weights).
+\section{Bonus: Multinomial Naive Bayes}
+Laplace smoothing:
+$P(w_j|y=c) = \frac{\text{count}(w_j,y=c)+\alpha}{\sum_k \text{count}(w_k,y=c)+\alpha V}$
+
+Multinomial NB models counts directly via multinomial distribution, unlike Gaussian NB which assumes continuous features.
+
+\begin{table}[H]
+    \centering
+    \caption{Multinomial NB results on text}
+    \begin{tabular}{c c c c}
+        \toprule
+        Model & Accuracy & F1 & AUC \\
+        \midrule
+        Multinomial NB (raw counts) & 0.9834 & 0.9796 & 0.9943 \\
+        Multinomial NB (TF-IDF) & 0.9896 & 0.9873 & 0.9935 \\
+        Gaussian NB (TF-IDF) & 0.9771 & 0.9720 & 0.9760 \\
+        LR & 0.9875 & 0.9846 & 0.9976 \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:multi}
+\end{table}
+
+\textbf{Insights:} Multinomial NB works best with raw counts (not TF-IDF). TF-IDF suits continuous-valued features (Gaussian NB, LR). For count data, Multinomial NB is theoretically correct, achieving 98.34\% accuracy, AUC 0.9943.
+
+\end{document}

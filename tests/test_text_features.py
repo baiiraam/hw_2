@@ -1,4 +1,3 @@
-# tests/test_text_features.py
 import numpy as np
 from src.text_features import BagOfWords, TfidfTransformer
 
