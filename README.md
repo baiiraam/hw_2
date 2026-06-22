@@ -51,42 +51,21 @@ hw2/
 - Python >= 3.11
 - Dependencies listed in `requirements.txt`
 
-## Setup and Installation
-
-### Using uv (Recommended)
-
+## Setup
+**uv (recommended):**
 ```bash
-uv init . && uv add {libraries_here}
-```
-or conventionally,
-```bash
-# Create virtual environment
-uv venv
-
-# Activate environment
-source .venv/bin/activate  # Linux/macOS
-.venv\Scripts\activate     # Windows
-
-# Install dependencies
+uv venv && source .venv/bin/activate
 uv pip install -r requirements.txt
 ```
 
 ### Using pip
-
 ```bash
-# Create virtual environment
-python -m venv .venv
-
-# Activate environment
-source .venv/bin/activate  # Linux/macOS
-.venv\Scripts\activate     # Windows
-
-# Install dependencies
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
 ## Running the Analysis
-You do not need to install jupyter specifically. Ipykernel would also do the job.
+You can run the notebook with Jupyter or any kernel that supports ipykernel.```
 
 ```bash
 # Launch Jupyter notebook
@@ -98,18 +77,9 @@ python notebooks/hw2_analysis.py
 ```
 
 ## Running Tests
-First command needs pytest, second command needs pytest-cov to check the coverage.
-
 ```bash
-# Run all tests
-pytest tests/ -v
-
-# Run with coverage report
-pytest tests/ --cov=src --cov-report=term
-
-# Run specific test file
-pytest tests/test_linear_models.py -v
-```
+pytest tests/ -v                          # all tests
+pytest tests/ --cov=src --cov-report=term # with coverage
 
 ## Test Coverage
 
